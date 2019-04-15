@@ -19,12 +19,35 @@ describe('Articles Endpoints', function() {
     app.set('db', db)
   })
 
+
   after('disconnect from db', () => db.destroy())
 
   before('cleanup', () => helpers.cleanTables(db))
 
   afterEach('cleanup', () => helpers.cleanTables(db))
 
+  describe(`Protected endpoints`, () => {
+    beforeEach('insert articles', () => 
+      helpers.seedArticlesTables(
+        db, 
+        testUsers,
+        testArticles,
+        testComments,
+      ))
+
+      const protectedEndpoints = [
+        {
+          name: 'GET /api/articles/:article_id',
+          path: '/api/articles/1'
+        },
+        {
+          name: 'GET /api/articles/:article_id/comments',
+          path: '/api/articles/1/comments'
+        },
+      ]
+  
+  })
+  
   describe(`GET /api/articles`, () => {
     context(`Given no articles`, () => {
       it(`responds with 200 and an empty list`, () => {
@@ -188,4 +211,5 @@ describe('Articles Endpoints', function() {
       })
     })
   })
-});
+})
+
