@@ -45,6 +45,7 @@ describe('Comments Endpoints', function() {
       this.retries(3)
       const testArticle = testArticles[0]
       const testUser = testUsers[0]
+      console.log(testUser, helpers.makeAuthHeader(testUser));
       const newComment = {
         text: 'Test new comment',
         article_id: testArticle.id,
@@ -52,7 +53,7 @@ describe('Comments Endpoints', function() {
       }
       return supertest(app)
         .post('/api/comments')
-        .set('Authorization', helpers.makeAuthHeader(testUsers[0]))
+        .set('Authorization', helpers.makeAuthHeader(testUser))
         .send(newComment)
         .expect(201)
         .expect(res => {
