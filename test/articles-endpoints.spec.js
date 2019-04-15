@@ -25,6 +25,61 @@ describe('Articles Endpoints', function() {
 
   afterEach('cleanup', () => helpers.cleanTables(db))
 
+  describe(`Protected endpoints`, () => {
+    beforeEach('insert articles', () => 
+      helpers.seedArticlesTables(
+        db, 
+        testUsers,
+        testArticles,
+        testComments,
+      ))
+
+      const protectedEndpoints = [
+        {
+          name: 'GET /api/articles/:article_id',
+          path: '/api/articles/1'
+        },
+        {
+          name: 'GET /api/articles/:article_id/comments',
+          path: '/api/articles/1/comments'
+        },
+      ]
+
+    protectedEndpoints.forEach(endpoint => {
+    describe(endpoint.name, () => {
+      it(`responds with 401 'Missing basic token', when no basic token`, () => {
+        return supertest(app)
+          .get(endpoint.path)
+          .expect(401, { error: `Missing basic token`})
+      })
+
+      it(`responds 401 'Unauthorized request' when no credentials in token`, () => {
+        const userNoCreds = { user_name: '', password: ''}
+        return supertest(app)
+          .get(endpoint.path)
+          .set('Authorization', helpers.makeAuthHeader(userNoCreds))
+          .expect(401, {error: `Unauthorized request` })
+      })
+
+      it(`responds 401 'Unauthorized request' when invalid user`, () => {
+        const userInvalidCreds = { user_name: 'user-not', password: 'existy' }
+        return supertest(app)
+          .get(endpoint.path)
+          .set('Authorization', helpers.makeAuthHeader(userInvalidCreds))
+          .expect(401, { error: `Unauthorized request` })
+      })
+
+      it(`responds 401 'Unauthorized request' when invalid password`, () => {
+        const userInvalidPass = { user_name: testUsers[0].user_name, password: 'wrong'}
+        return supertest(app)
+          .get(endpoint.path)
+          .set('Authorization', helpers.makeAuthHeader(userInvalidPass))
+          .expect(401, {error: `Unauthorized request`})
+      })
+    })
+  })
+})
+
   describe(`GET /api/articles`, () => {
     context(`Given no articles`, () => {
       it(`responds with 200 and an empty list`, () => {
@@ -87,10 +142,14 @@ describe('Articles Endpoints', function() {
 
   describe(`GET /api/articles/:article_id`, () => {
     context(`Given no articles`, () => {
+        beforeEach(() =>
+          db.into('blogful_users').insert(testUsers))
+
       it(`responds with 404`, () => {
         const articleId = 123456
         return supertest(app)
           .get(`/api/articles/${articleId}`)
+          .set('Authorization', helpers.makeAuthHeader(testUsers[0]))
           .expect(404, { error: `Article doesn't exist` })
       })
     })
@@ -115,6 +174,7 @@ describe('Articles Endpoints', function() {
 
         return supertest(app)
           .get(`/api/articles/${articleId}`)
+          .set('Authorization', helpers.makeAuthHeader(testUsers[0]))
           .expect(200, expectedArticle)
       })
     })
@@ -137,6 +197,7 @@ describe('Articles Endpoints', function() {
       it('removes XSS attack content', () => {
         return supertest(app)
           .get(`/api/articles/${maliciousArticle.id}`)
+          .set('Authorization', helpers.makeAuthHeader(testUser))
           .expect(200)
           .expect(res => {
             expect(res.body.title).to.eql(expectedArticle.title)
@@ -148,10 +209,13 @@ describe('Articles Endpoints', function() {
 
   describe(`GET /api/articles/:article_id/comments`, () => {
     context(`Given no articles`, () => {
+        beforeEach(() => 
+          db.into('blogful_users').insert(testUsers))
       it(`responds with 404`, () => {
         const articleId = 123456
         return supertest(app)
           .get(`/api/articles/${articleId}/comments`)
+          .set('Authorization', helpers.makeAuthHeader(testUsers[0]))
           .expect(404, { error: `Article doesn't exist` })
       })
     })
@@ -174,6 +238,7 @@ describe('Articles Endpoints', function() {
 
         return supertest(app)
           .get(`/api/articles/${articleId}/comments`)
+          .set('Authorization', helpers.makeAuthHeader(testUsers[0]))
           .expect(200, expectedComments)
       })
     })
