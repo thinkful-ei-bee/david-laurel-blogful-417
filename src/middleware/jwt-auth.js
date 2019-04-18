@@ -15,16 +15,17 @@ function requireAuth(req, res, next) {
 
     AuthService.getUserWithUserName(
       req.app.get('db'),
-      payload.sub,
+      payload.sub
     )
       .then(user => {
         if (!user) {
-          return res.status(401).json({ error: 'Unauthorized request'})
+          return res.status(401).json({ error: 'Unauthorized request'});
         }
         req.user = user;
         next();
       })
       .catch(err => {
+        // eslint-disable-next-line no-console
         console.error(err);
         next(err);
       });
